@@ -27,3 +27,4 @@ src/main/resources/siteads
 src/main/resources/sites
 
 .idea/**
+**/.DS_Store
