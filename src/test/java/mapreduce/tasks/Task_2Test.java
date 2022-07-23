@@ -85,7 +85,7 @@ public class Task_2Test extends TestCase {
 
     public void testIsSiteAdsTuple() {
         Text adsTuple = new Text(String.format("%s%s%s", Task_2.TABLE_ALIAS_SITE_ADS, Task_2.TUPLE_SEPARATOR, ""));
-        boolean isAdTuple = Task_2.isSiteAdsTuple(adsTuple);
+        boolean isAdTuple = Task_2.Task_2_Reduce.isSiteAdsTuple(adsTuple);
         assertTrue(isAdTuple);
     }
 
@@ -93,7 +93,7 @@ public class Task_2Test extends TestCase {
         double expectedPrice = 200;
         String expectedPriceStr = Double.toString(expectedPrice);
         String priceTuple = Task_2.createValueTuple(Task_2.TABLE_ALIAS_ADS, expectedPriceStr);
-        double returnedPrice = Task_2.getAdPrice(new Text(priceTuple));
+        double returnedPrice = Task_2.Task_2_Reduce.getAdPrice(new Text(priceTuple));
         assertEquals(expectedPrice, returnedPrice);
     }
 
@@ -101,7 +101,7 @@ public class Task_2Test extends TestCase {
         long expectedImpressions = 999;
         String expectedImpressionsStr = Long.toString(expectedImpressions);
         String impressionsTuple = Task_2.createValueTuple(Task_2.TABLE_ALIAS_SITE_ADS, expectedImpressionsStr);
-        long returnedImpressions = Task_2.getImpressions(new Text(impressionsTuple));
+        long returnedImpressions = Task_2.Task_2_Reduce.getImpressionCount(new Text(impressionsTuple));
         assertEquals(expectedImpressions, returnedImpressions);
     }
 

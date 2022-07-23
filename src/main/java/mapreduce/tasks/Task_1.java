@@ -28,15 +28,15 @@ public class Task_1 extends JobMapReduce {
         private final DateTimeFormatter timePatterns = DateTimeFormatter.ofPattern("[yyyyMMdd][yyyy-MM-dd][yyyy-DDD]['T'[HHmmss][HHmm][HH:mm:ss][HH:mm][.SSSSSSSSS][.SSSSSS][.SSS][.SS][.S]][OOOO][O][z][XXXXX][XXXX]['['VV']']");
 
         /**
-         * This function parses the date from string, it tries to mach the most completed datetime. It returns the date
-         * at the UTC timezone.
+         * This function parses the date from string, it tries to match the most completed date-time.
+         * It returns the date at the UTC time zone.
          *
-         * @param text, the string to parse.
+         * @param dateStr, the string to be parsed.
          * @return The parsed date in UTC.
          */
-        public ZonedDateTime parseDate(String text) {
+        public ZonedDateTime parseDate(String dateStr) {
             // Try to get the most complete date from the optional format
-            TemporalAccessor temporalAccessor = timePatterns.parseBest(text, ZonedDateTime::from, LocalDateTime::from, LocalDate::from);
+            TemporalAccessor temporalAccessor = timePatterns.parseBest(dateStr, ZonedDateTime::from, LocalDateTime::from, LocalDate::from);
             // Convert to UTC depending on the class type of the best matching date.
             if (temporalAccessor instanceof ZonedDateTime) {
                 return ((ZonedDateTime) temporalAccessor).withZoneSameInstant(ZoneOffset.UTC);
@@ -48,7 +48,8 @@ public class Task_1 extends JobMapReduce {
         }
 
         /**
-         * This function checks that a given date is between two dates [included].
+         * This function checks that a given date {@code currentDate} is between the range determined
+         * by {@code filterDateStart} and {@code filterDateEnd}, both included.
          *
          * @param currentDate     Date to be checked between ZonedDateTime and filterDateEnd.
          * @param filterDateStart Inital value of the range.
@@ -63,20 +64,21 @@ public class Task_1 extends JobMapReduce {
             return currentDateDt.compareTo(filterDateStartDt) >= 0 && currentDateDt.compareTo(filterDateEndDt) <= 0;
         }
 
-        // Find out how many ads have been published between 2020-11-05 and 2020-11-07 (both included)
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            // First key has the columns, we have to find the positions of the columns we want to use
+            // The First row key has the columns, so we skip the first row
             if (key.get() == 0) return;
 
+            // Get the column names
             String dateColumn = context.getConfiguration().getStrings("dateColumn")[0];
             String filterDateStart = context.getConfiguration().getStrings("filterDateStart")[0];
             String filterDateEnd = context.getConfiguration().getStrings("filterDateEnd")[0];
+
             // Split the data
             String[] arrayValues = value.toString().split(",");
             String dateColumnValue = Utils.getAttributeSiteAds(arrayValues, dateColumn);
 
-            // Filter if the date is in the specified range
+            // Filter if the date is in the specified range and emit the value if it is inside the range
             if (isDateInRange(dateColumnValue, filterDateStart, filterDateEnd)) {
                 context.write(new IntWritable(0), new IntWritable(1));
             }
@@ -86,22 +88,26 @@ public class Task_1 extends JobMapReduce {
     public static class Task_1_Reduce extends Reducer<IntWritable, IntWritable, Text, Text> {
         @Override
         public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-            // Sum the values.
-            long sum = 0;
+            // Initialize the count of the ads that have been published.
+            long countOfPublishedAds = 0;
             for (IntWritable value : values) {
-                sum += value.get();
+                countOfPublishedAds += value.get();
             }
 
+            // Get the values of the range, to include the range into the output csv.
             String filterDateStart = context.getConfiguration().getStrings("filterDateStart")[0];
             String filterDateEnd = context.getConfiguration().getStrings("filterDateEnd")[0];
 
+            // Format the final text output with the range
             String finalOutput = String.format("%s,%s", filterDateStart, filterDateEnd);
-            context.write(new Text(Long.toString(sum)), new Text(finalOutput));
+
+            context.write(new Text(Long.toString(countOfPublishedAds)), new Text(finalOutput));
         }
 
-        // Override the setup method for adding the CSV column header
+        // This overrride of the setup method is for including to the output file a header like a regular CSV
         @Override
         public void setup(Context context) throws IOException, InterruptedException {
+            // Get the value if write header is enabled
             boolean writeHeader = context.getConfiguration().getBoolean("writeHeader", true);
             if (writeHeader) {
                 Text column = new Text("totalPublishedAds");
@@ -149,6 +155,8 @@ public class Task_1 extends JobMapReduce {
         job.getConfiguration().setStrings("dateColumn", "publishedDate");
         job.getConfiguration().setStrings("filterDateStart", "2020-11-05");
         job.getConfiguration().setStrings("filterDateEnd", "2020-11-07");
+
+        // This is for having a csv like output, instead space-separated key-values
         job.getConfiguration().set("mapred.textoutputformat.separator", ",");
 
         // Cleanup output path
@@ -159,8 +167,6 @@ public class Task_1 extends JobMapReduce {
         // The files the job will read from/write to
         FileInputFormat.addInputPath(job, new Path(pathIn[0]));
         FileOutputFormat.setOutputPath(job, new Path(pathOut));
-
-
     }
 }
 
