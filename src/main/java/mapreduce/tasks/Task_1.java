@@ -52,7 +52,7 @@ public class Task_1 extends JobMapReduce {
          * by {@code filterDateStart} and {@code filterDateEnd}, both included.
          *
          * @param currentDate     Date to be checked between ZonedDateTime and filterDateEnd.
-         * @param filterDateStart Inital value of the range.
+         * @param filterDateStart Initial value of the range.
          * @param filterDateEnd   Final value of the range.
          * @return The parsed date in UTC.
          */
@@ -76,7 +76,14 @@ public class Task_1 extends JobMapReduce {
 
             // Split the data
             String[] arrayValues = value.toString().split(",");
+
+            // Check if array is completed
+            if ((arrayValues.length<4)) return;
+
             String dateColumnValue = Utils.getAttributeSiteAds(arrayValues, dateColumn);
+
+            // Check if dateColumn has a value, if not, skip the row
+            if (dateColumnValue == null) return;
 
             // Filter if the date is in the specified range and emit the value if it is inside the range
             if (isDateInRange(dateColumnValue, filterDateStart, filterDateEnd)) {

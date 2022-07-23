@@ -49,9 +49,15 @@ public class Task_2 extends JobMapReduce {
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
+            // Check if array is completed
+            if ((arrayValues.length<3)) return;
+
             // Get the values
             String keyColumnValue = Utils.getAttributeAds(arrayValues, keyColumn);
             String adPriceValue = Utils.getAttributeAds(arrayValues, adPrice);
+
+            // Check if keyColumnValue or adPriceValue are null, skip the row
+            if ((keyColumnValue == null)||(adPriceValue==null)) return;
 
             // Prepare the output tuple with the format ads#adPriceValue
             String finalOutput = createValueTuple(TABLE_ALIAS_ADS, adPriceValue);
@@ -74,9 +80,15 @@ public class Task_2 extends JobMapReduce {
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
+            // Check if array is completed
+            if ((arrayValues.length<4)) return;
+
             // Get the column names
             String keyColumnValue = Utils.getAttributeSiteAds(arrayValues, keyColumn);
             String impressionsValue = Utils.getAttributeSiteAds(arrayValues, impressions);
+
+            // If there is no impressions, then the number of impressions is 0
+            if (impressionsValue == null) impressionsValue = "0";
 
             // Prepare the output tuple with the format siteAds#impressionsValue
             String finalOutput = createValueTuple(TABLE_ALIAS_SITE_ADS, impressionsValue);

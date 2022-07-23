@@ -109,14 +109,22 @@ public class Task_3 extends JobMapReduce {
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
+            // Check if array is completed
+            if ((arrayValues.length<4)) return;
+
             // Get the values
-            String siteIdColumnValue = Utils.getAttributeSiteAds(arrayValues, siteIdColumn);
-            String impressionsColumnValue = Utils.getAttributeSiteAds(arrayValues, impressionsColumn);
+            String siteIdValue = Utils.getAttributeSiteAds(arrayValues, siteIdColumn);
+            String impressionsValue = Utils.getAttributeSiteAds(arrayValues, impressionsColumn);
+
+            // Check if keyColumnValue is null, skip the row
+            if (siteIdValue == null) return;
+            // If there is no impressions, then the number of impressions is 0
+            if (impressionsValue == null) impressionsValue = "0";
 
             // Create the output tuple with the adIdCount initialized to 1, this will be aggregated by the combiner
-            String finalOutput = createValueTuple(TABLE_ALIAS_SITE_ADS, "1", impressionsColumnValue, "");
+            String finalOutput = createValueTuple(TABLE_ALIAS_SITE_ADS, "1", impressionsValue, "");
 
-            context.write(new Text(siteIdColumnValue), new Text(finalOutput));
+            context.write(new Text(siteIdValue), new Text(finalOutput));
         }
     }
 
@@ -159,14 +167,20 @@ public class Task_3 extends JobMapReduce {
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
+            // Check if array is completed
+            if ((arrayValues.length<2)) return;
+
             // Get the values
-            String siteIdColumnValue = Utils.getAttributesSites(arrayValues, siteIdColumn);
-            String siteNameColumnValue = Utils.getAttributesSites(arrayValues, siteNameColumn);
+            String siteIdValue = Utils.getAttributesSites(arrayValues, siteIdColumn);
+            String siteNameValue = Utils.getAttributesSites(arrayValues, siteNameColumn);
+
+            // Check if siteIdColumnValue or siteNameColumnValue is null, if it is, skip the row
+            if ((siteIdValue == null)||(siteNameValue ==null)) return;
 
             // Prepare the output tuple with the format sites#adIdCount#impressionsValue#siteNameColumnValue
-            String finalOutput = createValueTuple(TABLE_ALIAS_SITES, "", "", siteNameColumnValue);
+            String finalOutput = createValueTuple(TABLE_ALIAS_SITES, "", "", siteNameValue);
 
-            context.write(new Text(siteIdColumnValue), new Text(finalOutput));
+            context.write(new Text(siteIdValue), new Text(finalOutput));
         }
     }
 
