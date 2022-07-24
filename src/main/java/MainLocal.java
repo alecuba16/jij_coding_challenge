@@ -13,7 +13,7 @@ public class MainLocal extends Configured implements Tool {
     public int run(String[] args) throws Exception {
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "LocalMapReduce");
-
+        long startTime = System.nanoTime();
         if (args[0].equals("-task_1")) {
             String[] inputPathTask_1 = {"src/main/resources/siteads"};
             Task_1.configureJob(job, inputPathTask_1, "src/main/resources/results/task-1");
@@ -28,6 +28,9 @@ public class MainLocal extends Configured implements Tool {
         }
 
         boolean success = job.waitForCompletion(true);
+        long endTime   = System.nanoTime();
+        double totalTime = (endTime - startTime) / 1000000000.0;
+        System.out.println(String.format("Hadoop running time for %s is %.4f seconds",args[0],totalTime));
         return success ? 0 : 1;
     }
 

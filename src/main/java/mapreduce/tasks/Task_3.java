@@ -206,7 +206,7 @@ public class Task_3 extends JobMapReduce {
             // Calculate the average number of impressions per adId
             Double avgImpressionsBySite = adidCount != 0 ? (double) impressionsSum / adidCount : null;
             // Output will be the adId,revenue with one decimal
-            String finalOutput = String.format("%.1f", avgImpressionsBySite);
+            String finalOutput = String.format("%.3f", avgImpressionsBySite);
 
             context.write(new Text(siteName), new Text(finalOutput));
         }

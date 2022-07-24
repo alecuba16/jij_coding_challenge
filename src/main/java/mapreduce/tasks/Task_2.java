@@ -42,27 +42,26 @@ public class Task_2 extends JobMapReduce {
             // First key has the columns, we have to find the positions of the columns we want to use
             if (key.get() == 0) return;
 
-            // Get the column names
-            String keyColumn = context.getConfiguration().getStrings("keyColumn")[0];
-            String adPrice = context.getConfiguration().getStrings("adPriceColumn")[0];
+            // Count the number of commas in the line, if it is != 2, it is not a valid line
+            long numberOfCommas = value.toString().chars().filter(ch -> ch == ',').count();
+            if (numberOfCommas != 2) return;
 
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
-            // Check if array is completed
-            if ((arrayValues.length<3)) return;
-
             // Get the values
-            String keyColumnValue = Utils.getAttributeAds(arrayValues, keyColumn);
-            String adPriceValue = Utils.getAttributeAds(arrayValues, adPrice);
+            String adIdColName = context.getConfiguration().getStrings("adId")[0];
+            String adPriceColName = context.getConfiguration().getStrings("adPriceColumn")[0];
+            String adIdValue = Utils.getAttributeAds(arrayValues, adIdColName);
+            String adPriceValue = Utils.getAttributeAds(arrayValues, adPriceColName);
 
-            // Check if keyColumnValue or adPriceValue are null, skip the row
-            if ((keyColumnValue == null)||(adPriceValue==null)) return;
+            // Check if adIdValue or adPriceValue are null, skip the row
+            if ((adIdValue == null)||(adPriceValue==null)) return;
 
             // Prepare the output tuple with the format ads#adPriceValue
             String finalOutput = createValueTuple(TABLE_ALIAS_ADS, adPriceValue);
 
-            context.write(new Text(keyColumnValue), new Text(finalOutput));
+            context.write(new Text(adIdValue), new Text(finalOutput));
         }
     }
 
@@ -73,19 +72,18 @@ public class Task_2 extends JobMapReduce {
             // The First row key has the columns, so we skip the first row
             if (key.get() == 0) return;
 
-            // Get the column names
-            String keyColumn = context.getConfiguration().getStrings("keyColumn")[0];
-            String impressions = context.getConfiguration().getStrings("impressionsColumn")[0];
+            // Count the number of commas in the line, if it is != 3, it is not a valid line
+            long numberOfCommas = value.toString().chars().filter(ch -> ch == ',').count();
+            if (numberOfCommas != 3) return;
 
             // Split the data
             String[] arrayValues = value.toString().split(",");
 
-            // Check if array is completed
-            if ((arrayValues.length<4)) return;
-
-            // Get the column names
-            String keyColumnValue = Utils.getAttributeSiteAds(arrayValues, keyColumn);
-            String impressionsValue = Utils.getAttributeSiteAds(arrayValues, impressions);
+            // Get the column values
+            String adIdColName = context.getConfiguration().getStrings("adId")[0];
+            String impressionsColName = context.getConfiguration().getStrings("impressionsColumn")[0];
+            String adIdValue = Utils.getAttributeSiteAds(arrayValues, adIdColName);
+            String impressionsValue = Utils.getAttributeSiteAds(arrayValues, impressionsColName);
 
             // If there is no impressions, then the number of impressions is 0
             if (impressionsValue == null) impressionsValue = "0";
@@ -93,7 +91,7 @@ public class Task_2 extends JobMapReduce {
             // Prepare the output tuple with the format siteAds#impressionsValue
             String finalOutput = createValueTuple(TABLE_ALIAS_SITE_ADS, impressionsValue);
 
-            context.write(new Text(keyColumnValue), new Text(finalOutput));
+            context.write(new Text(adIdValue), new Text(finalOutput));
         }
 
     }
@@ -117,9 +115,9 @@ public class Task_2 extends JobMapReduce {
          * @param tuple A tuple of data in the format of {@link Task_2#createValueTuple}.
          * @return A double value of the ad price.
          */
-        public static double getAdPrice(Text tuple) {
+        public static long getAdPrice(Text tuple) {
             String[] tupleFields = tuple.toString().split(TUPLE_SEPARATOR);
-            return Double.parseDouble(tupleFields[TUPLE_VALUE_POS]);
+            return Long.parseLong(tupleFields[TUPLE_VALUE_POS]);
         }
 
         /**
@@ -137,7 +135,7 @@ public class Task_2 extends JobMapReduce {
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             // Counter variables
-            double adPrice = 0;
+            long adPrice = 0;
             long totalImpressions = 0;
 
             for (Text tuple : values) {
@@ -152,9 +150,9 @@ public class Task_2 extends JobMapReduce {
             }
 
             // Finally calculate the revenue
-            double revenue = adPrice * totalImpressions;
+            long revenue = adPrice * totalImpressions;
             // Format with one decimal
-            String finalOutput = String.format("%.1f", revenue);
+            String finalOutput = String.format("%d", revenue);
             // Output will be the adId,revenue with one decimal
             context.write(key, new Text(finalOutput));
         }
@@ -209,7 +207,7 @@ public class Task_2 extends JobMapReduce {
         /**
          * Specify here the parameters to send to the job
          **/
-        job.getConfiguration().setStrings("keyColumn", "adId");
+        job.getConfiguration().setStrings("adId", "adId");
         job.getConfiguration().setStrings("adPriceColumn", "adPrice");
         job.getConfiguration().setStrings("impressionsColumn", "impressions");
         job.getConfiguration().set("mapred.textoutputformat.separator", ",");
