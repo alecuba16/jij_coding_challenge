@@ -1,0 +1,8 @@
+Hadoop running time for -task_1 is 132.0464 seconds
+Hadoop running time for -task_2 is 42.5363 seconds
+Hadoop running time for -task_3 is 27.4825 seconds
+
+
+Spark running time for -task_1 is 6.4356 seconds (18x faster than hadoop)
+Spark running time for -task_2 is 12.1077 seconds (2x faster than hadoop)
+Spark running time for -task_3 is 6.6898 seconds (4,5x faster than hadoop)
