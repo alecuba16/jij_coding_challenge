@@ -125,7 +125,7 @@ public class Task_3Test extends TestCase {
         values.add(new Text(tupleSiteAds));
         values.add(new Text(tupleSites));
 
-        String finalOutput = String.format("%.1f", (Double.parseDouble(impressions) * 2) / (Long.parseLong(adIdCount)*2));
+        String finalOutput = String.format("%.3f", (Double.parseDouble(impressions) * 2) / (Long.parseLong(adIdCount)*2));
         reduceDriver.withInput(new Text(siteId), values)
                 .withOutput(new Text("siteName"), new Text("averageImpressions"))
                 .withOutput(new Text(siteName), new Text(finalOutput))

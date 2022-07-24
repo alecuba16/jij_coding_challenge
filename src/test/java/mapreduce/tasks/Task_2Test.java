@@ -22,14 +22,14 @@ public class Task_2Test extends TestCase {
         Task_2.Task_2_Map_Ads mapperAds = new Task_2.Task_2_Map_Ads();
         mapAdsDriver = new MapDriver<>();
         mapAdsDriver.setMapper(mapperAds);
-        mapAdsDriver.getConfiguration().setStrings("keyColumn", "adId");
+        mapAdsDriver.getConfiguration().setStrings("adId", "adId");
         mapAdsDriver.getConfiguration().setStrings("adPriceColumn", "adPrice");
 
         // Prepare siteAds mapper
         Task_2.Task_2_Map_SiteAds mapperSiteAds = new Task_2.Task_2_Map_SiteAds();
         mapSiteAdsDriver = new MapDriver<>();
         mapSiteAdsDriver.setMapper(mapperSiteAds);
-        mapSiteAdsDriver.getConfiguration().setStrings("keyColumn", "adId");
+        mapSiteAdsDriver.getConfiguration().setStrings("adId", "adId");
         mapSiteAdsDriver.getConfiguration().setStrings("impressionsColumn", "impressions");
 
         // Prepare reducer
@@ -69,7 +69,7 @@ public class Task_2Test extends TestCase {
         values.add(new Text(impressionTuple));
         values.add(new Text(priceTuple));
 
-        String finalOutput = String.format("%.1f", Double.parseDouble(impressions) * Double.parseDouble(price));
+        String finalOutput = String.format("%d", Long.parseLong(impressions) * Long.parseLong(price));
         reduceDriver.withInput(new Text(siteId), values)
                 .withOutput(new Text("adId"), new Text("revenue"))
                 .withOutput(new Text(siteId), new Text(finalOutput))
@@ -90,10 +90,10 @@ public class Task_2Test extends TestCase {
     }
 
     public void testGetAdPrice() {
-        double expectedPrice = 200;
-        String expectedPriceStr = Double.toString(expectedPrice);
+        long expectedPrice = 200;
+        String expectedPriceStr = Long.toString(expectedPrice);
         String priceTuple = Task_2.createValueTuple(Task_2.TABLE_ALIAS_ADS, expectedPriceStr);
-        double returnedPrice = Task_2.Task_2_Reduce.getAdPrice(new Text(priceTuple));
+        long returnedPrice = Task_2.Task_2_Reduce.getAdPrice(new Text(priceTuple));
         assertEquals(expectedPrice, returnedPrice);
     }
 
