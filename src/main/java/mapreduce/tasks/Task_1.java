@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 
 public class Task_1 extends JobMapReduce {
-    public static class Task_1_Map extends Mapper<LongWritable, Text, IntWritable, IntWritable> {
+    public static class Task_1_Map extends Mapper<LongWritable, Text, IntWritable, LongWritable> {
 
         /**
          * The date format used to parse the date from the input file. Matches 2020-11-14T00:00:00+00:00 and 2020-11-14
@@ -85,19 +85,36 @@ public class Task_1 extends JobMapReduce {
             // Check if dateColumn has a value, if not, skip the row
             if (dateColumnValue == null) return;
 
+            // Partition key by a number of workers
+            int numberOfWorkers = context.getConfiguration().getInt("mapred.map.tasks", 1);
+            int partition = (int) (key.get() % numberOfWorkers);
             // Filter if the date is in the specified range and emit the value if it is inside the range
             if (isDateInRange(dateColumnValue, filterDateStart, filterDateEnd)) {
-                context.write(new IntWritable(0), new IntWritable(1));
+                context.write(new IntWritable(partition), new LongWritable(1));
             }
         }
     }
 
-    public static class Task_1_Reduce extends Reducer<IntWritable, IntWritable, Text, Text> {
+    public static class Task_1_Combiner extends Reducer<IntWritable, LongWritable, IntWritable, LongWritable> {
         @Override
-        public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        public void reduce(IntWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
             // Initialize the count of the ads that have been published.
             long countOfPublishedAds = 0;
-            for (IntWritable value : values) {
+            for (LongWritable value : values) {
+                countOfPublishedAds += value.get();
+            }
+
+            context.write(new IntWritable(0), new LongWritable(countOfPublishedAds));
+        }
+    }
+
+
+    public static class Task_1_Reduce extends Reducer<IntWritable, LongWritable, Text, Text> {
+        @Override
+        public void reduce(IntWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+            // Initialize the count of the ads that have been published.
+            long countOfPublishedAds = 0;
+            for (LongWritable value : values) {
                 countOfPublishedAds += value.get();
             }
 
@@ -145,7 +162,9 @@ public class Task_1 extends JobMapReduce {
         // Set the mapper class it must use
         job.setMapperClass(Task_1_Map.class);
         job.setMapOutputKeyClass(IntWritable.class);
-        job.setMapOutputValueClass(IntWritable.class);
+        job.setMapOutputValueClass(LongWritable.class);
+
+        job.setCombinerClass(Task_1_Combiner.class);
 
         // Set the reducer class it must use
         job.setReducerClass(Task_1_Reduce.class);
@@ -153,6 +172,8 @@ public class Task_1 extends JobMapReduce {
         // The output will be Text
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
+
+        // Set the combiner, is the same as the reducer but without the avg
 
         /**
          * Specify here the parameters to send to the job
