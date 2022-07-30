@@ -1,0 +1,3 @@
+Hadoop running time for -task_1 is 131.0874 seconds
+Hadoop running time for -task_2 is 51.2291 seconds
+Hadoop running time for -task_3 is 26.5296 seconds

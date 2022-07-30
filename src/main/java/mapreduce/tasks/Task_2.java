@@ -34,7 +34,7 @@ public class Task_2 extends JobMapReduce {
      */
 
     public static class Task_2_Map extends Mapper<LongWritable, Text, Text, IntWritable> {
-        private static Map<String, Integer> adsPrices;
+        private Map<String, Integer> adsPrices;
 
         public void fileToAdsPricesMap(Path filePath, String adIdColumnName) throws IOException {
             try (BufferedReader bufferedReader =
@@ -162,14 +162,12 @@ public class Task_2 extends JobMapReduce {
         // add files to cache
         File folder = new File(pathAds);
         File[] listOfFiles = folder.listFiles();
+        assert listOfFiles != null;
         for (File file : listOfFiles) {
             if (file.isFile()) {
                 job.addCacheFile(file.toURI());
             }
         }
-
-        //Path inputPathDistributed = new Path(pathAds);
-        //job.addCacheFile(inputPathDistributed.toUri());
 
         job.setCombinerClass(Task_2_Combiner.class);
 
