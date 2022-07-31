@@ -18,6 +18,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 // Calculate revenue of the ads. Being revenue = adPrice * impressions
 public class Task_2 extends JobMapReduce {
@@ -36,16 +37,21 @@ public class Task_2 extends JobMapReduce {
     public static class Task_2_Map extends Mapper<LongWritable, Text, Text, IntWritable> {
         private Map<String, Integer> adsPrices;
 
-        public void fileToAdsPricesMap(Path filePath, String adIdColumnName) throws IOException {
-            try (BufferedReader bufferedReader =
-                         new BufferedReader(new FileReader(filePath.toString()))) {
+        public void fileToAdsPricesMap(Path filePath, String adIdColumnName, String adsPriceColumnName) throws IOException {
+            // Read each line in a buffer
+            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath.toString()))) {
                 String line;
+                // If is not empty...
                 while ((line = bufferedReader.readLine()) != null) {
+                    // If it is not the header...
                     if (line.contains(adIdColumnName)) continue;
+                    // Split the line on the separator "," and get the values.
                     String[] adsArray = line.split(",");
-                    String adsId = adsArray[0];
-                    Integer adsPrice = Integer.parseInt(adsArray[2]);
-                    adsPrices.put(adsId, adsPrice);
+                    String adIdValue = Utils.getAttributeAds(adsArray, adIdColumnName);
+                    String adsPriceValue = Utils.getAttributeAds(adsArray, adsPriceColumnName);
+                    // If there is no ad price for the ad, set to zero.
+                    if (adsPriceValue == null) adsPriceValue = "0";
+                    adsPrices.put(adIdValue, Integer.parseInt(adsPriceValue));
                 }
             }
         }
@@ -54,12 +60,16 @@ public class Task_2 extends JobMapReduce {
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
             // Get the column names
-            String adIdColumnName = context.getConfiguration().getStrings("adId")[0];
+            String adIdColumnName = context.getConfiguration().getStrings("adIdColumn")[0];
+            String adsPriceColumnName = context.getConfiguration().getStrings("adPriceColumn")[0];
+            // Initialize the adsPrice map
             adsPrices = new HashMap<>();
+            // Get cache files uri
             URI[] adPricesFiles = context.getCacheFiles();
             if (adPricesFiles != null && adPricesFiles.length > 0) {
                 for (URI adPricesFile : adPricesFiles) {
-                    fileToAdsPricesMap(new Path(adPricesFile.getPath()), adIdColumnName);
+                    // Process each file in the cache
+                    fileToAdsPricesMap(new Path(adPricesFile.getPath()), adIdColumnName, adsPriceColumnName);
                 }
             }
 
@@ -71,7 +81,7 @@ public class Task_2 extends JobMapReduce {
             if (key.get() == 0) return;
 
             // Get the column names
-            String adId = context.getConfiguration().getStrings("adId")[0];
+            String adId = context.getConfiguration().getStrings("adIdColumn")[0];
             String impressions = context.getConfiguration().getStrings("impressionsColumn")[0];
 
             // Split the data
@@ -101,6 +111,7 @@ public class Task_2 extends JobMapReduce {
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
             // Counter variables
             int revenue = 0;
+            // Accum the values
             for (IntWritable tuple : values) {
                 revenue += tuple.get();
             }
@@ -113,11 +124,10 @@ public class Task_2 extends JobMapReduce {
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
             // Counter variables
             double revenue = 0;
-
+            // Accum the values
             for (IntWritable tuple : values) {
                 revenue += tuple.get();
             }
-
             // Format with one decimal
             String finalOutput = String.format("%.1f", revenue);
             // Output will be the adId,revenue with one decimal
@@ -157,21 +167,15 @@ public class Task_2 extends JobMapReduce {
         // Prepare the input paths and set to the mappers
         String pathAds = pathIn[0];
         Path pathSiteAds = new Path(pathIn[1]);
+
+        // Set the input paths
         FileInputFormat.setInputPaths(job, pathSiteAds);
 
-        // add files to cache
-        File folder = new File(pathAds);
-        File[] listOfFiles = folder.listFiles();
-        assert listOfFiles != null;
-        for (File file : listOfFiles) {
-            if (file.isFile()) {
-                job.addCacheFile(file.toURI());
-            }
-        }
+        // Set the mapper class
+        job.setMapperClass(Task_2.Task_2_Map.class);
 
         job.setCombinerClass(Task_2_Combiner.class);
 
-        job.setMapperClass(Task_2.Task_2_Map.class);
         // Set the mapper output keys and values
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(IntWritable.class);
@@ -186,10 +190,20 @@ public class Task_2 extends JobMapReduce {
         /**
          * Specify here the parameters to send to the job
          **/
-        job.getConfiguration().setStrings("adId", "adId");
+        job.getConfiguration().setStrings("adIdColumn", "adId");
         job.getConfiguration().setStrings("adPriceColumn", "adPrice");
         job.getConfiguration().setStrings("impressionsColumn", "impressions");
         job.getConfiguration().set("mapred.textoutputformat.separator", ",");
+
+        // add files to cache
+        File folder = new File(pathAds);
+        File[] listOfFiles = folder.listFiles();
+        assert listOfFiles != null;
+        for (File file : listOfFiles) {
+            if (file.isFile()) {
+                job.addCacheFile(file.toURI());
+            }
+        }
 
         // Cleanup output path
         Path outputPath = new Path(pathOut);

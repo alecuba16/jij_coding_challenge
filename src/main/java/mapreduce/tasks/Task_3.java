@@ -161,6 +161,7 @@ public class Task_3 extends JobMapReduce {
             long adidCount = 0;
             long impressionsSum = 0;
             String siteName = "";
+            // Accum the values
             for (Text tuple : values) {
                 adidCount += getAdIdCount(tuple);
                 siteName = getSiteName(tuple);
@@ -216,6 +217,9 @@ public class Task_3 extends JobMapReduce {
 
         FileInputFormat.setInputPaths(job, sitesAdsPath);
 
+        // Set the mapper class
+        job.setMapperClass(Task_3.Task_3_Map.class);
+
         // add files to cache
         File folder = new File(sitesPath);
         File[] listOfFiles = folder.listFiles();
@@ -226,7 +230,6 @@ public class Task_3 extends JobMapReduce {
             }
         }
 
-        job.setMapperClass(Task_3.Task_3_Map.class);
 
         // The mappers output classes
         job.setMapOutputKeyClass(Text.class);
