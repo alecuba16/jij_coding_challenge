@@ -27,15 +27,17 @@ public class Task_2 {
         // Prepare the encoder to a dataset of Ads
         Dataset<Row> adsDf = sparkSession.read().option("header", "true").option("mode", "DROPMALFORMED")
                 .schema(adsSchema).csv(pathIn[0]);
+        // Select adId and adPrice
+        adsDf = adsDf.select(col("adId"), col("adPrice"));
+
+        // Aggregate the impressions by adId
+        siteAdsDf = siteAdsDf.groupBy("adId").agg(functions.sum("impressions").alias("impressions"));
 
         // Join the siteAds with Ads
         Dataset<Row> joinedAds = siteAdsDf.alias("siteAds").join(functions.broadcast(adsDf.alias("ads")),
                 adsDf.col("adId").equalTo(siteAdsDf.col("adId")),"right");
 
         joinedAds = joinedAds.select("ads.adId","impressions","adPrice");
-        // Group the impressions
-        joinedAds = joinedAds.groupBy("adId").agg(functions.sum("impressions").as("impressions"),
-                functions.max("adPrice").as("adPrice"));
 
         // Calculate the revenue
         Dataset<Row> revenueDf=joinedAds.withColumn("revenue",
