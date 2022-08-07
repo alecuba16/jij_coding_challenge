@@ -1,10 +1,7 @@
 package spark.tasks;
 
-import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.StructType;
-import spark.common.SiteAds;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -13,19 +10,20 @@ import java.util.Date;
 import java.util.TimeZone;
 
 public class Task_1 {
-    public static boolean isDateInRange(Timestamp currentDate, Timestamp filterDateStart, Timestamp filterDateEnd) {
-        return currentDate.compareTo(filterDateStart) >= 0 && currentDate.compareTo(filterDateEnd) <= 0;
-    }
 
     public static void run(SparkSession sparkSession, String[] pathIn, String pathOut) throws ParseException {
         String inputPath = pathIn[0];
 
         // Read siteAds
-        // Get spark schema
-        StructType siteAdsSchema = SiteAds.getSparkSchema();
+        // Define the siteAds Schema
+        StructType siteAdsSchema = new StructType()
+                .add("adId", "long")
+                .add("siteId", "long")
+                .add("publishedDate", "timestamp")
+                .add("impressions", "long");
         // Prepare the encoder to a dataset of SiteAds
-        Encoder<SiteAds> siteAdsEncoder = Encoders.bean(SiteAds.class);
-        Dataset<SiteAds> siteAdsDf = sparkSession.read().option("header", "true").schema(siteAdsSchema).csv(inputPath).as(siteAdsEncoder);
+        Dataset<Row> siteAdsDf = sparkSession.read().option("header", "true").option("mode", "DROPMALFORMED")
+                .schema(siteAdsSchema).csv(inputPath);
 
         String filterDateIniStr = "2020-11-05";
         String filterDateEndStr = "2020-11-07";
@@ -40,8 +38,7 @@ public class Task_1 {
         Timestamp filterDateEnd = new Timestamp(filterDateEndD.getTime());
 
         // Define the date filter
-        Dataset<SiteAds> filteredSiteAds = siteAdsDf.filter((FilterFunction<SiteAds>)
-                siteAd -> isDateInRange(siteAd.getPublishedDate(), filterDateIni, filterDateEnd));
+        Dataset<Row> filteredSiteAds = siteAdsDf.filter(new Column("publishedDate").between(filterDateIni, filterDateEnd));
         Dataset<Row> countedSiteAds = filteredSiteAds.agg(functions.count("adId").alias("totalPublishedAds"),
                 functions.lit(filterDateIniStr).alias("dateIni"),
                 functions.lit(filterDateEndStr).alias("dateEnd"));
